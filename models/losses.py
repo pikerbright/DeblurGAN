@@ -12,6 +12,8 @@ from torch.autograd import Variable
 # Functions
 ###############################################################################
 
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 class ContentLoss():
 	def initialize(self, loss):
 		self.criterion = loss
@@ -24,9 +26,9 @@ class PerceptualLoss():
 	def contentFunc(self):
 		conv_3_3_layer = 14
 		cnn = models.vgg19(pretrained=True).features
-		cnn = cnn.cuda()
+		cnn = cnn.to(device)
 		model = nn.Sequential()
-		model = model.cuda()
+		model = model.to(device)
 		for i,layer in enumerate(list(cnn)):
 			model.add_module(str(i),layer)
 			if i == conv_3_3_layer:
@@ -138,17 +140,17 @@ class DiscLossWGANGP(DiscLossLS):
 	def calc_gradient_penalty(self, netD, real_data, fake_data):
 		alpha = torch.rand(1, 1)
 		alpha = alpha.expand(real_data.size())
-		alpha = alpha.cuda()
+		alpha = alpha.to(device)
 
 		interpolates = alpha * real_data + ((1 - alpha) * fake_data)
 
-		interpolates = interpolates.cuda()
+		interpolates = interpolates.to(device)
 		interpolates = Variable(interpolates, requires_grad=True)
 		
 		disc_interpolates = netD.forward(interpolates)
 
 		gradients = autograd.grad(outputs=disc_interpolates, inputs=interpolates,
-								  grad_outputs=torch.ones(disc_interpolates.size()).cuda(),
+								  grad_outputs=torch.ones(disc_interpolates.size()).to(device),
 								  create_graph=True, retain_graph=True, only_inputs=True)[0]
 
 		gradient_penalty = ((gradients.norm(2, dim=1) - 1) ** 2).mean() * self.LAMBDA
